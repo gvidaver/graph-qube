@@ -1,0 +1,99 @@
+----------------------------------------------------------------
+Building
+----------------------------------------------------------------
+
+Graph QuBE uses Apache Maven for build automation and dependency management. 
+
+- mvn compile
+  - runs code generation to create .java files from Avro .avdl files
+- mvn package
+  - creates jar file for Graph QuBE server
+  - copies all dependencies to target/lib
+
+----------------------------------------------------------------
+Starting h2 database server
+----------------------------------------------------------------
+
+An example of a database tool to use with Graph QuBE is H2, though it can be used with other database tools. Graph QuBE calls out to the chosen database service. Since H2 is not GPL compatible, users are encouraged to download and setup H2 for themselves in their own application of the Graph QuBE source. H2 can also be downloaded automatically by uncommenting the appropriate dependency block in the maven configuration file "pom.xml". H2 is not an official part of Graph QuBE and the example code provided only makes use of it as an example. 
+
+- in bin directory of h2 distribution
+- java -cp h2-1.3.172.jar org.h2.tools.Server
+- should see Web Console server, TCP server, and PG server start up
+- it'll probably also launch the Web Console in a browser
+
+----------------------------------------------------------------
+Database setup
+----------------------------------------------------------------
+
+- start h2 database server
+- set JDBC URL to "jdbc:h2:tcp://localhost//h2data/graph/graph1"
+  - which will create a new database called graph1 in local folder /h2data/graph
+- click [Connect]
+- paste contents of graph-qube/database/create.sql into command window in web page
+- click [Run]
+- run scripts to ingest kiva (or bitcoin) or insert some test data:
+
+insert into entity (id, guid, name, type) values ((select nextval('seq_entity_id')), 'Ltest1', 'test1', 'lender');
+insert into entity (id, guid, name, type) values ((select nextval('seq_entity_id')), 'Btest2', 'test2', 'borrower');
+insert into entity (id, guid, name, type) values ((select nextval('seq_entity_id')), 'Ptest3', 'test3', 'partner');
+
+insert into entity_attribute_string (entity_id, key, value) values (1000, 'a1', 'v1');
+insert into entity_attribute_double (entity_id, key, value) values (1000, 'a2', 10.5);
+
+insert into entity_attribute_string (entity_id, key, value) values (1001, 'a1', 'v2');
+insert into entity_attribute_double (entity_id, key, value) values (1001, 'a2', 20.8);
+
+----------------------------------------------------------------
+Running
+----------------------------------------------------------------
+
+- If running in Eclipse, running GraphQuBEServer will launch server on port 4567
+- or can run from graph-qube/target directory:
+
+C:\Users\user\workspace\graph-qube\target>java -cp graph-qube-0.0.1-SNAPSHOT.jar;lib/* mitll.xdata.GraphQuBEServer
+
+- test REST service:
+
+# entity with guid "Ltest1"
+http://localhost:4567/searchByExample?example={"uid":"1234","name":"node query 1","description":{"string":"query for node by id"},"entities":[{"uid":"Q1","role":{"string":"seed"},"sameAs":null,"entities":{"array":["Ltest1"]},"tags":null,"properties":{"array":[]},"examplars":null,"weight":0.0}],"links":[]}
+
+# entity with guid "Ltest1" or "Btest2"
+http://localhost:4567/searchByExample?example={"uid":"1234","name":"node query 1","description":{"string":"query for node by id"},"entities":[{"uid":"Q1","role":{"string":"seed"},"sameAs":null,"entities":{"array":["Ltest1", "Btest2"]},"tags":null,"properties":{"array":[]},"examplars":null,"weight":0.0}],"links":[]}
+
+# entity with a1 == v1
+http://localhost:4567/searchByExample?example={"uid":"1234","name":"node query 1","description":{"string":"query for node by id"},"entities":[{"uid":"Q1","role":{"string":"seed"},"sameAs":null,"entities":{"array":[]},"tags":null,"properties":{"array":[{"key":"a1","value":{"string":"v1"},"constraint":"EQUALS","relative":false,"weight":0.0}]},"examplars":null,"weight":0.0}],"links":[]}
+
+# entity with a2 == 20.8
+http://localhost:4567/searchByExample?example={"uid":"1234","name":"node query 1","description":{"string":"query for node by id"},"entities":[{"uid":"Q1","role":{"string":"seed"},"sameAs":null,"entities":{"array":[]},"tags":null,"properties":{"array":[{"key":"a2","value":{"double":20.8},"constraint":"EQUALS","relative":false,"weight":0.0}]},"examplars":null,"weight":0.0}],"links":[]}
+
+# entity with a2 <= 15
+http://localhost:4567/searchByExample?example={"uid":"1234","name":"node query 1","description":{"string":"query for node by id"},"entities":[{"uid":"Q1","role":{"string":"seed"},"sameAs":null,"entities":{"array":[]},"tags":null,"properties":{"array":[{"key":"a2","value":{"double":15},"constraint":"LESS_THAN_EQUALS","relative":false,"weight":0.0}]},"examplars":null,"weight":0.0}],"links":[]}
+
+
+http://localhost:4567/searchByExample?example={"uid":"1234","name":"node query 1","description":{"string":"query for node by id"},"entities":[{"uid":"Q1","role":{"string":"seed"},"sameAs":null,"entities":{"array":["lmatt", "ljessica", "lskylar"]},"tags":null,"properties":{"array":[]},"examplars":null,"weight":0.0}],"links":[]}
+
+
+- to kill server, click red box in Eclipse or press CTRL-C in command window
+
+----------------------------------------------------------------
+Maven tidbits
+----------------------------------------------------------------
+
+- for proxy stuff, might need to add proxy to your settings.xml file:
+
+C:\Users\user\.m2\settings.xml
+
+<settings>
+...
+  <proxies>
+    <proxy>
+      <id>myproxy</id>
+      <active>true</active>
+      <protocol>http</protocol>
+      <host>...</host>
+      <port>...</port>
+    </proxy>
+  </proxies>
+...
+</settings>
+
